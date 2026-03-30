@@ -1,0 +1,64 @@
+### Test 1: Check if admin email is taken (should return false)
+GET http://localhost:8080/api/auth/check-email?email=admin@ecommerce.com
+
+### Test 2: Check if new email is available (should return true)
+GET http://localhost:8080/api/auth/check-email?email=brandnew@example.com
+
+### Test 3: Register a new user
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "tarunthakur.codes@gmail.com",
+  "password": "IAMtannu@1",
+  "firstName": "Tarun",
+  "lastName": "Thakur",
+  "phoneNumber": "+18622376821"
+}
+
+### Test 4: Login with the newly registered user
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "tarunthakur.codes@gmail.com",
+  "password": "IAMtannu@1"
+}
+
+### Test 5: Login with existing customer (from our sample data)
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "customer@example.com",
+  "password": "customer123"
+}
+
+### Test 6: Login with admin (from our sample data)
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@ecommerce.com",
+  "password": "admin123"
+}
+
+### Test 7: Try login with wrong password (should fail)
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "customer@example.com",
+  "password": "wrongpassword"
+}
+
+### Test 8: Try to register with existing email (should fail)
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "admin@ecommerce.com",
+  "password": "password123",
+  "firstName": "Duplicate",
+  "lastName": "User"
+}
