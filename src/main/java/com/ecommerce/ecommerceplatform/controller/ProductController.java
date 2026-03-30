@@ -1,76 +1,97 @@
 package com.ecommerce.ecommerceplatform.controller;
 
+import com.ecommerce.ecommerceplatform.dto.ProductDto;
 import com.ecommerce.ecommerceplatform.entity.Product;
+import com.ecommerce.ecommerceplatform.entity.ProductStatus;
 import com.ecommerce.ecommerceplatform.service.ProductService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:3000") // For frontend development
 public class ProductController {
 
     private final ProductService productService;
 
-    // Get all products
     @GetMapping
     public ResponseEntity<List<Product>> getAllProducts() {
-        List<Product> products = productService.getAllProducts();
-        return ResponseEntity.ok(products);
+        log.debug("Getting all products");
+        return ResponseEntity.ok(productService.getAllProducts());
     }
 
-    // Get product by ID
     @GetMapping("/{id}")
     public ResponseEntity<Product> getProductById(@PathVariable Long id) {
-        Optional<Product> product = productService.getProductById(id);
-        return product.map(ResponseEntity::ok)
+        log.debug("Getting product by id: {}", id);
+        return productService.getProductById(id)
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Get active products only
-    @GetMapping("/active")
-    public ResponseEntity<List<Product>> getActiveProducts() {
-        List<Product> products = productService.getActiveProducts();
-        return ResponseEntity.ok(products);
-    }
-
-    // Get products in stock
-    @GetMapping("/in-stock")
-    public ResponseEntity<List<Product>> getProductsInStock() {
-        List<Product> products = productService.getProductsInStock();
-        return ResponseEntity.ok(products);
-    }
-
-    // Search products
-    @GetMapping("/search")
-    public ResponseEntity<List<Product>> searchProducts(@RequestParam String query) {
-        List<Product> products = productService.searchProducts(query);
-        return ResponseEntity.ok(products);
-    }
-
-    // Create new product
     @PostMapping
-    public ResponseEntity<Product> createProduct(@RequestBody Product product) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Product> createProduct(@Valid @RequestBody ProductDto productDto) {
+        log.debug("Creating product with name: {}", productDto.getName());
+        
+        // Convert DTO to Entity
+        Product product = new Product();
+        product.setName(productDto.getName());
+        product.setDescription(productDto.getDescription());
+        product.setPrice(productDto.getPrice());
+        product.setStockQuantity(productDto.getStockQuantity());
+        product.setSku(productDto.getSku());
+        product.setImageUrl(productDto.getImageUrl());
+        product.setStatus(productDto.getStatus() != null ? productDto.getStatus() : ProductStatus.ACTIVE);
+        
         Product savedProduct = productService.saveProduct(product);
-        return ResponseEntity.ok(savedProduct);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedProduct);
     }
 
-    // Update product
     @PutMapping("/{id}")
-    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product product) {
-        Product updatedProduct = productService.updateProduct(id, product);
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Product> updateProduct(@PathVariable Long id, 
+                                                  @Valid @RequestBody ProductDto productDto) {
+        log.debug("Updating product with id: {}", id);
+        
+        // First, get existing product
+        Product existingProduct = productService.getProductById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+        
+        // Update fields from DTO
+        if (productDto.getName() != null) existingProduct.setName(productDto.getName());
+        if (productDto.getDescription() != null) existingProduct.setDescription(productDto.getDescription());
+        if (productDto.getPrice() != null) existingProduct.setPrice(productDto.getPrice());
+        if (productDto.getStockQuantity() != null) existingProduct.setStockQuantity(productDto.getStockQuantity());
+        if (productDto.getSku() != null) existingProduct.setSku(productDto.getSku());
+        if (productDto.getImageUrl() != null) existingProduct.setImageUrl(productDto.getImageUrl());
+        if (productDto.getStatus() != null) existingProduct.setStatus(productDto.getStatus());
+        
+        Product updatedProduct = productService.updateProduct(id, existingProduct);
         return ResponseEntity.ok(updatedProduct);
     }
 
-    // Delete product
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+        log.debug("Deleting product with id: {}", id);
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
+    }
+    
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ResponseEntity<String> handleAccessDenied(AccessDeniedException e) {
+        log.error("Access denied: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body("Access denied: You don't have permission to perform this action");
     }
 }

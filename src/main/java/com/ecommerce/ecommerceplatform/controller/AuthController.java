@@ -5,6 +5,7 @@ import com.ecommerce.ecommerceplatform.dto.LoginRequest;
 import com.ecommerce.ecommerceplatform.dto.RegisterRequest;
 import com.ecommerce.ecommerceplatform.entity.User;
 import com.ecommerce.ecommerceplatform.service.UserService;
+import com.ecommerce.ecommerceplatform.utils.JwtUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final UserService userService;
+    private final JwtUtil jwtUtil;
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
@@ -36,11 +38,14 @@ public class AuthController {
             newUser.setPhoneNumber(request.getPhoneNumber());
 
             User savedUser = userService.registerNewUser(newUser);
+            
+            // Generate JWT token
+            String token = jwtUtil.generateToken(savedUser.getEmail());
 
             // Remove password from response for security
             savedUser.setPassword(null);
 
-            return ResponseEntity.ok(AuthResponse.success("User registered successfully", savedUser));
+            return ResponseEntity.ok(AuthResponse.success("User registered successfully", savedUser, token));
 
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -57,10 +62,13 @@ public class AuthController {
                 User user = userService.getUserByEmail(request.getEmail())
                         .orElseThrow(() -> new RuntimeException("User not found"));
 
+                // Generate JWT token
+                String token = jwtUtil.generateToken(user.getEmail());
+
                 // Remove password from response
                 user.setPassword(null);
 
-                return ResponseEntity.ok(AuthResponse.success("Login successful", user));
+                return ResponseEntity.ok(AuthResponse.success("Login successful", user, token));
             } else {
                 return ResponseEntity.badRequest()
                         .body(AuthResponse.error("Invalid email or password"));
