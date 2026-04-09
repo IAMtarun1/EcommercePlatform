@@ -6,6 +6,7 @@ import com.ecommerce.ecommerceplatform.service.CartService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -30,9 +31,9 @@ public class CartController {
     public ResponseEntity<CartResponse> addToCart(
             @Valid @RequestBody CartItemRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
-
+        
         log.info("Adding product {} to cart for user: {}", request.getProductId(), userDetails.getUsername());
-        CartResponse cart = cartService.addToCart(userDetails.getUsername(), request);
+        CartResponse cart = cartService.addToCart(userDetails.getUsername(), request.getProductId(), request.getQuantity());
         return ResponseEntity.ok(cart);
     }
 
@@ -41,7 +42,7 @@ public class CartController {
             @PathVariable Long itemId,
             @RequestParam Integer quantity,
             @AuthenticationPrincipal UserDetails userDetails) {
-
+        
         log.info("Updating cart item {} to quantity {} for user: {}", itemId, quantity, userDetails.getUsername());
         CartResponse cart = cartService.updateCartItem(userDetails.getUsername(), itemId, quantity);
         return ResponseEntity.ok(cart);
@@ -51,7 +52,7 @@ public class CartController {
     public ResponseEntity<CartResponse> removeFromCart(
             @PathVariable Long itemId,
             @AuthenticationPrincipal UserDetails userDetails) {
-
+        
         log.info("Removing item {} from cart for user: {}", itemId, userDetails.getUsername());
         CartResponse cart = cartService.removeFromCart(userDetails.getUsername(), itemId);
         return ResponseEntity.ok(cart);

@@ -21,5 +21,6 @@ public class CartResponse {
         private Integer quantity;
         private BigDecimal price;
         private BigDecimal subtotal;
+        private Integer stockQuantity;  // Added this field
     }
 }
