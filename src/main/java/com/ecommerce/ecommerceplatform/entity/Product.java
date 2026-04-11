@@ -49,4 +49,37 @@ public class Product {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Review> reviews = new ArrayList<>();
+    
+    // Multiple images support
+    @ElementCollection
+    @CollectionTable(name = "product_images", joinColumns = @JoinColumn(name = "product_id"))
+    @Column(name = "image_url")
+    private List<String> images = new ArrayList<>();
+    
+    // Helper method to get all images (main image + additional images)
+    public List<String> getAllImages() {
+        List<String> allImages = new ArrayList<>();
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            allImages.add(imageUrl);
+        }
+        if (images != null && !images.isEmpty()) {
+            allImages.addAll(images);
+        }
+        return allImages;
+    }
+    
+    // Helper method to add an image
+    public void addImage(String imageUrl) {
+        if (this.images == null) {
+            this.images = new ArrayList<>();
+        }
+        this.images.add(imageUrl);
+    }
+    
+    // Helper method to remove an image
+    public void removeImage(String imageUrl) {
+        if (this.images != null) {
+            this.images.remove(imageUrl);
+        }
+    }
 }
