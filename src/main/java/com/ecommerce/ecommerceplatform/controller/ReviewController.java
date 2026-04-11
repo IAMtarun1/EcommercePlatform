@@ -25,6 +25,24 @@ public class ReviewController {
 
     private final ReviewService reviewService;
 
+    // Public endpoint - anyone can view reviews
+    @GetMapping("/product/{productId}")
+    public ResponseEntity<List<ReviewResponse>> getProductReviews(@PathVariable Long productId) {
+        log.info("Getting reviews for product: {}", productId);
+        List<ReviewResponse> reviews = reviewService.getProductReviews(productId);
+        return ResponseEntity.ok(reviews);
+    }
+
+    // Public endpoint - anyone can view review stats
+    @GetMapping("/product/{productId}/stats")
+    public ResponseEntity<Map<String, Object>> getProductReviewStats(@PathVariable Long productId) {
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("averageRating", reviewService.getProductAverageRating(productId));
+        stats.put("totalReviews", reviewService.getProductReviewCount(productId));
+        return ResponseEntity.ok(stats);
+    }
+
+    // Protected - only authenticated users can create reviews
     @PostMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ReviewResponse> createReview(
@@ -36,24 +54,7 @@ public class ReviewController {
         return ResponseEntity.status(HttpStatus.CREATED).body(review);
     }
 
-    @GetMapping("/product/{productId}")
-    public ResponseEntity<List<ReviewResponse>> getProductReviews(@PathVariable Long productId) {
-        log.info("Getting reviews for product: {}", productId);
-        List<ReviewResponse> reviews = reviewService.getProductReviews(productId);
-        return ResponseEntity.ok(reviews);
-    }
-
-    @GetMapping("/product/{productId}/stats")
-    public ResponseEntity<Map<String, Object>> getProductReviewStats(@PathVariable Long productId) {
-        log.info("Getting review stats for product: {}", productId);
-        
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("averageRating", reviewService.getProductAverageRating(productId));
-        stats.put("totalReviews", reviewService.getProductReviewCount(productId));
-        
-        return ResponseEntity.ok(stats);
-    }
-
+    // Protected - only authenticated users can view their own reviews
     @GetMapping("/my-reviews")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ReviewResponse>> getMyReviews(
@@ -64,6 +65,7 @@ public class ReviewController {
         return ResponseEntity.ok(reviews);
     }
 
+    // Protected - users can delete their own reviews, admins can delete any
     @DeleteMapping("/{reviewId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> deleteReview(

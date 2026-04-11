@@ -28,13 +28,13 @@ public class Review {
     private User user;
     
     @Column(nullable = false)
-    private Integer rating; // 1-5 stars
+    private Integer rating;
+    
+    @Column(nullable = false, length = 200)
+    private String title;
     
     @Column(length = 1000)
     private String comment;
-    
-    @Column(nullable = false)
-    private String title;
     
     @CreationTimestamp
     private LocalDateTime createdAt;

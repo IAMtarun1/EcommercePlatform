@@ -50,7 +50,7 @@ dependencies {
         // Test dependencies
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
         testImplementation 'org.springframework.security:spring-security-test'
-        testRuntimeOnly 'com.h2database:h2'  // This line should be here
+        testRuntimeOnly 'com.h2database:h2'
     }
 }
 

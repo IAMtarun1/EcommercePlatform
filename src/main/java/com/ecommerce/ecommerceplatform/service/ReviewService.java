@@ -10,8 +10,10 @@ import com.ecommerce.ecommerceplatform.repository.ReviewRepository;
 import com.ecommerce.ecommerceplatform.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,14 +30,14 @@ public class ReviewService {
     @Transactional
     public ReviewResponse createReview(ReviewRequest request, String userEmail) {
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         
         Product product = productRepository.findById(request.getProductId())
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
         
         // Check if user already reviewed this product
         if (reviewRepository.findByUserIdAndProductId(user.getId(), product.getId()).isPresent()) {
-            throw new RuntimeException("You have already reviewed this product");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You have already reviewed this product");
         }
         
         Review review = new Review();
@@ -60,7 +62,7 @@ public class ReviewService {
 
     public List<ReviewResponse> getUserReviews(String userEmail) {
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         
         return reviewRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
                 .stream()
@@ -69,25 +71,26 @@ public class ReviewService {
     }
 
     public Double getProductAverageRating(Long productId) {
-        return reviewRepository.getAverageRatingByProductId(productId);
+        Double avg = reviewRepository.getAverageRatingByProductId(productId);
+        return avg != null ? avg : 0.0;
     }
 
     public Long getProductReviewCount(Long productId) {
-        return reviewRepository.getReviewCountByProductId(productId);
+        Long count = reviewRepository.getReviewCountByProductId(productId);
+        return count != null ? count : 0L;
     }
 
     @Transactional
     public void deleteReview(Long reviewId, String userEmail) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new RuntimeException("Review not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Review not found"));
         
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         
-        // Allow only review owner or admin to delete
         boolean isAdmin = user.getRole().name().equals("ADMIN");
         if (!review.getUser().getId().equals(user.getId()) && !isAdmin) {
-            throw new RuntimeException("You can only delete your own reviews");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only delete your own reviews");
         }
         
         reviewRepository.delete(review);
